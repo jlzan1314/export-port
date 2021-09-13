@@ -1,0 +1,16 @@
+domain: com.test
+layout:
+- go.kubebuilder.io/v3
+projectName: export-port
+repo: export-port
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: com.test
+  group: export-port
+  kind: ExportPort
+  path: export-port/api/v1
+  version: v1
+version: "3"

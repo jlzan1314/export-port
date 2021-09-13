@@ -1,0 +1,24 @@
+# permissions for end users to edit exportports.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: exportport-editor-role
+rules:
+- apiGroups:
+  - export-port.com.test
+  resources:
+  - exportports
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - export-port.com.test
+  resources:
+  - exportports/status
+  verbs:
+  - get

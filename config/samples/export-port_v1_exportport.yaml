@@ -1,0 +1,7 @@
+apiVersion: export-port.com.test/v1
+kind: ExportPort
+metadata:
+  name: exportport-sample
+spec:
+  # Add fields here
+  foo: bar
