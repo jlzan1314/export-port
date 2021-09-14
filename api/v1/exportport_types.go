@@ -28,22 +28,15 @@ import (
 // ExportPortSpec defines the desired state of ExportPort
 type ExportPortSpec struct {
 	// 业务服务对应的镜像，包括名称:tag
-	Image string `json:"image"`
-	// service占用的宿主机端口，外部请求通过此端口访问pod的服务
-	Port *int32 `json:"port"`
-
-	// 单个pod的QPS上限
-	SinglePodQPS *int32 `json:"singlePodQPS"`
-	// 当前整个业务的总QPS
-	TotalQPS *int32 `json:"totalQPS"`
+	Label string `json:"label"`
+	Ver   string `json:"ver"`
 }
 
 // ExportPortStatus defines the observed state of ExportPort
 type ExportPortStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	RealQPS *int32 `json:"realQPS"`
+	CurrNum *int32 `json:"currNum"`
 }
 
 //+kubebuilder:object:root=true
@@ -59,20 +52,17 @@ type ExportPort struct {
 }
 
 func (in *ExportPort) String() string {
-	var realQPS string
+	var currNum string
 
-	if nil == in.Status.RealQPS {
-		realQPS = "nil"
+	if nil == in.Status.CurrNum {
+		currNum = "0"
 	} else {
-		realQPS = strconv.Itoa(int(*(in.Status.RealQPS)))
+		currNum = strconv.Itoa(int(*(in.Status.CurrNum)))
 	}
 
-	return fmt.Sprintf("Image [%s], Port [%d], SinglePodQPS [%d], TotalQPS [%d], RealQPS [%s]",
-		in.Spec.Image,
-		*(in.Spec.Port),
-		*(in.Spec.SinglePodQPS),
-		*(in.Spec.TotalQPS),
-		realQPS)
+	return fmt.Sprintf("Lable:[%s], CurrNum [%s]",
+		in.Spec.Label,
+		currNum)
 }
 
 //+kubebuilder:object:root=true
