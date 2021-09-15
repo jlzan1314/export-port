@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -52,10 +51,10 @@ func (e *EnqueueRequestForObject) Create(evt event.CreateEvent, q workqueue.Rate
 		return
 	}
 
-	enqueueLog.Info(fmt.Sprintf("[kind:%s]", evt.Object.GetObjectKind().GroupVersionKind().String()))
+	//enqueueLog.Info(fmt.Sprintf("[kind:%s]", evt.Object.GetObjectKind().GroupVersionKind().String()))
 
 	if p, ok := evt.Object.(*corev1.Pod); ok {
-		enqueueLog.Info(fmt.Sprintf("kindPod[%s]", p.Name))
+		//enqueueLog.Info(fmt.Sprintf("kindPod[%s]", p.Name))
 
 		if k := DefaultLabelMap.MatchLabels(p.GetLabels()); k != "" {
 			e.AddQueue(k, q)

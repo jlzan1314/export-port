@@ -151,11 +151,35 @@ func (r *ExportPortReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
+//获取服务列表
+func (r *ExportPortReconciler) getSvc(ctx context.Context, namespaceName string) (*corev1.ServiceList, error) {
+	log := log.FromContext(ctx)
+	serviceList := &corev1.ServiceList{}
+	labels := &client.HasLabels{namespaceName}
+
+	err := r.List(ctx, serviceList, labels)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			log.Info(fmt.Sprintf("label:[%s] serviceList:%d", namespaceName, 0))
+			return nil, nil
+		}
+		return nil, err
+	} else {
+		log.Info(fmt.Sprintf("label:[%s] serviceList:%d", namespaceName, len(serviceList.Items)))
+		return serviceList, nil
+	}
+}
+
 func insertIngress(ctx context.Context, r *ExportPortReconciler, pods *corev1.PodList, ingress *networkingv1.Ingress, exportPort *exportportv1.ExportPort, req ctrl.Request) *networkingv1.Ingress {
 	log := log.FromContext(ctx).WithName("insertIngress")
 	paths := make([]networkingv1.HTTPIngressPath, 0)
-	var num int32
+
+	existPods := map[string]int{}
+
 	for _, pod := range pods.Items {
+
+		existPods[pod.Name] = 1
+
 		labels := pod.GetLabels()
 		if _, ok := labels["export-port"]; !ok {
 			labels["export-port"] = pod.Name
@@ -181,7 +205,6 @@ func insertIngress(ctx context.Context, r *ExportPortReconciler, pods *corev1.Po
 				},
 			},
 		})
-		num++
 	}
 
 	ingress.Spec.Rules = []networkingv1.IngressRule{
@@ -192,6 +215,15 @@ func insertIngress(ctx context.Context, r *ExportPortReconciler, pods *corev1.Po
 				},
 			},
 		},
+	}
+	//同步pod 服务器,如果pod被删除,需要删除对于的svc
+	services, err := r.getSvc(ctx, req.NamespacedName.String())
+	if err == nil || errors.IsNotFound(err) {
+		for _, svc := range services.Items {
+			if _, ok := existPods[svc.Name]; !ok {
+				_ = r.Delete(ctx, &svc)
+			}
+		}
 	}
 
 	return ingress
@@ -239,14 +271,15 @@ func createPodServiceIfNotExists(ctx context.Context, r *ExportPortReconciler, e
 	log := log.FromContext(ctx)
 
 	service := &corev1.Service{}
-	req.NamespacedName.Name = pod.Name
-	err := r.Get(ctx, req.NamespacedName, service)
+
+	serviceNamespace := req.NamespacedName
+	serviceNamespace.Name = pod.Name
+	err := r.Get(ctx, serviceNamespace, service)
 
 	// 如果查询结果没有错误，证明service正常，就不做任何操作
 	if err == nil {
 		return nil
 	}
-
 	// 如果错误不是NotFound，就返回错误
 	if !errors.IsNotFound(err) {
 		log.Error(err, "query service error")
