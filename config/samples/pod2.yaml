@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tomcat-2
+  namespace: dev
+  labels:
+    external-visit: "true"
+spec:
+  containers:
+    - name: tomcat
+      image: tomcat:8.0.18-jre8
+      imagePullPolicy: "IfNotPresent"
+      ports:
+        - containerPort: 8080

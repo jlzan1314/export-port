@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	exportportv1 "export-port/api/v1"
 )
@@ -63,6 +64,7 @@ type ExportPortReconciler struct {
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=ingress,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="apps",resources=pods,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -99,13 +101,15 @@ func (r *ExportPortReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	DefaultLabelMap.Store(instance.Spec.Label, instance)
+
 	log.Info("3. instance : " + instance.String())
 
 	// 查找deployment
 	ingress := &networkingv1.Ingress{}
 
 	// 用客户端工具查询
-	err = r.Get(ctx, req.NamespacedName, ingress)
+	err = r.ApiReader.Get(ctx, req.NamespacedName, ingress)
 	// 查找时发生异常，以及查出来没有结果的处理逻辑
 	pods, err2 := r.getLabelPods(ctx, instance.Spec.Label)
 	if err2 != nil {
@@ -197,7 +201,7 @@ func createIngress(ctx context.Context, r *ExportPortReconciler, exportPort *exp
 	log := log.FromContext(ctx)
 	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      APP_NAME,
+			Name:      req.Name,
 			Namespace: exportPort.Namespace,
 			Annotations: map[string]string{
 				"nginx.ingress.kubernetes.io/rewrite-target": "/",
@@ -205,6 +209,7 @@ func createIngress(ctx context.Context, r *ExportPortReconciler, exportPort *exp
 		},
 		Spec: networkingv1.IngressSpec{},
 	}
+
 	ingress.Spec.DefaultBackend = &networkingv1.IngressBackend{
 		Service: &networkingv1.IngressServiceBackend{
 			Name: "nginx-ingress-default-backend",
@@ -253,6 +258,9 @@ func createPodServiceIfNotExists(ctx context.Context, r *ExportPortReconciler, e
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: exportPort.Namespace,
 			Name:      pod.Name,
+			Labels: map[string]string{
+				req.NamespacedName.String(): pod.Name,
+			},
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
@@ -368,9 +376,9 @@ func (r *ExportPortReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.ApiReader = mgr.GetAPIReader()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&exportportv1.ExportPort{}).
-		//Watches(&source.Kind{Type: &corev1.Pod{}},
-		//	&handler.EnqueueRequestForObject{},
-		//builder.OnlyMetadata).
+		Watches(&source.Kind{Type: &corev1.Pod{}},
+			&EnqueueRequestForObject{}). //builder.OnlyMetadata
+		//WithEventFilter(&ResourceChangedPredicate{r:r}).
 		Complete(r)
 }
 
