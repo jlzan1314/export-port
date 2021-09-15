@@ -28,6 +28,7 @@ import (
 // ExportPortSpec defines the desired state of ExportPort
 type ExportPortSpec struct {
 	// 业务服务对应的镜像，包括名称:tag
+	//+kubebuilder:validation:Required
 	Label string `json:"label"`
 	Ver   string `json:"ver"`
 }

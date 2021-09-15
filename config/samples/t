@@ -1,0 +1,1 @@
+NamespacedName:dev/export-port-sample   {"reconciler group": "export-port.com.test", "reconciler kind": "ExportPort", "name": "export-port-sample", "namespace": "dev"}
