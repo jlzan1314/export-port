@@ -30,7 +30,11 @@ type ExportPortSpec struct {
 	// 业务服务对应的镜像，包括名称:tag
 	//+kubebuilder:validation:Required
 	Label string `json:"label"`
-	Ver   string `json:"ver"`
+
+	//+kubebuilder:validation:Required
+	Port *int32 `json:"port"`
+
+	Ver string `json:"ver"`
 }
 
 // ExportPortStatus defines the observed state of ExportPort
@@ -42,6 +46,7 @@ type ExportPortStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:printcolumn:JSONPath=".status.currNum",name=currNum,type=string
 
 // ExportPort is the Schema for the exportports API
 type ExportPort struct {

@@ -181,8 +181,8 @@ func insertIngress(ctx context.Context, r *ExportPortReconciler, pods *corev1.Po
 		existPods[pod.Name] = 1
 
 		labels := pod.GetLabels()
-		if _, ok := labels["export-port"]; !ok {
-			labels["export-port"] = pod.Name
+		if _, ok := labels[SERVICE_TAG]; !ok {
+			labels[SERVICE_TAG] = pod.Name
 			pod.SetLabels(labels)
 			r.Update(ctx, &pod)
 		}
@@ -257,11 +257,19 @@ func createIngress(ctx context.Context, r *ExportPortReconciler, exportPort *exp
 		return nil, err
 	}
 
-	ingress = insertIngress(ctx, r, pods, ingress, exportPort, req)
+	if pods != nil {
+		ingress = insertIngress(ctx, r, pods, ingress, exportPort, req)
 
-	err := r.Create(ctx, ingress)
-	if err != nil {
-		return nil, err
+		err := r.Create(ctx, ingress)
+		if err != nil {
+			return nil, err
+		}
+
+		err = updateStatus(ctx, r, exportPort, int32(len(pods.Items)))
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	return ingress, nil
@@ -300,7 +308,7 @@ func createPodServiceIfNotExists(ctx context.Context, r *ExportPortReconciler, e
 				{
 					Name:       "http",
 					Port:       8080,
-					TargetPort: intstr.FromInt(8080),
+					TargetPort: intstr.FromInt(int(*(exportPort.Spec.Port))),
 				},
 			},
 			Type: corev1.ServiceTypeClusterIP,

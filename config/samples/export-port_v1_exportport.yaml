@@ -6,5 +6,6 @@ metadata:
   name: export-port-sample
 spec:
   label: "external-visit"
+  port: 8080
   ver: "33"
 
