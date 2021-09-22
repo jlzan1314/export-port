@@ -138,7 +138,6 @@ func (r *ExportPortReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	ingress = insertIngress(ctx, r, pods, ingress, instance, req)
 	err = r.Update(ctx, ingress)
-	// 如果更新deployment的Replicas成功，就更新状态
 	if err = updateStatus(ctx, r, instance, int32(len(pods.Items))); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -216,7 +215,7 @@ func insertIngress(ctx context.Context, r *ExportPortReconciler, pods *corev1.Po
 			},
 		},
 	}
-	//同步pod 服务器,如果pod被删除,需要删除对于的svc
+	//同步pod列表,如果pod被删除,需要删除对于的svc
 	services, err := r.getSvc(ctx, req.NamespacedName.String())
 	if err == nil || errors.IsNotFound(err) {
 		for _, svc := range services.Items {
@@ -318,7 +317,7 @@ func createPodServiceIfNotExists(ctx context.Context, r *ExportPortReconciler, e
 		},
 	}
 	// 这一步非常关键！
-	// 建立关联后，删除elasticweb资源时就会将deployment也删除掉
+	// 建立关联后，删除资源时就会将deployment也删除掉
 	log.Info("set reference")
 	if err := controllerutil.SetControllerReference(exportPort, service, r.Scheme); err != nil {
 		log.Error(err, "SetControllerReference error")
@@ -376,7 +375,7 @@ func createPodEndpointIfNotExists(ctx context.Context, r *ExportPortReconciler, 
 		},
 	}
 	// 这一步非常关键！
-	// 建立关联后，删除elasticweb资源时就会将deployment也删除掉
+	// 建立关联后，删除资源时就会将deployment也删除掉
 	log.Info("set reference")
 	if err := controllerutil.SetControllerReference(exportPort, endponint, r.Scheme); err != nil {
 		log.Error(err, "SetControllerReference error")
@@ -426,7 +425,6 @@ func (r *ExportPortReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // 完成了pod的处理后，更新最新状态
 func updateStatus(ctx context.Context, r *ExportPortReconciler, exportPort *exportportv1.ExportPort, num int32) error {
 	log := log.FromContext(ctx)
-	// 当pod创建完毕后，当前系统实际的QPS：单个pod的QPS * pod总数
 	// 如果该字段还没有初始化，就先做初始化
 	if nil == exportPort.Status.CurrNum {
 		exportPort.Status.CurrNum = new(int32)
